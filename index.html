@@ -1,0 +1,1852 @@
+<!DOCTYPE html>
+<html lang="en" style="height: 100%">
+
+<head>
+    <meta charset="utf-8">
+    <style>
+        html,
+        body,
+        .el-main {
+            margin: 0;
+            padding: 0;
+            overflow: hidden !important;
+        }
+
+        *::-webkit-scrollbar {
+            width: 3px;
+        }
+
+        *::-webkit-scrollbar-thumb {
+            border-radius: 7px;
+            background-color: rgb(69, 69, 88);
+        }
+
+        *::-webkit-scrollbar-track {
+            border-radius: 7px;
+            background: rgba(0, 0, 0, 0);
+        }
+
+        a,
+        img,
+        button,
+        .el-menu-item,
+        .mesList,
+        .check,
+        .el-collapse,
+        .el-breadcrumb,
+        input[type="checkbox"],
+        i {
+            cursor: url("//cdn.jsdelivr.net/gh/pdone/static/img/cursor/link.cur"), pointer !important;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.js"></script>
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <link rel="stylesheet" href="style.css">
+    <!-- 引入组件库 -->
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <script type="text/javascript" src="https://cdn.staticfile.net/jquery/3.7.1/jquery.min.js"></script>
+    <script type="text/javascript"
+        src="https://registry.npmmirror.com/echarts/5.5.0/files/dist/echarts.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.css" rel="stylesheet" />
+
+</head>
+
+
+
+<div id="app" style="height:100vh">
+    <div id="clickCanvas" style="position:fixed;left:0;top:0;z-index:999999999;pointer-events:none"></div>
+    <el-header><span>各国人均寿命与GDP数据集可视化与分析——{{title}}</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<small>Made
+            by ®Langwenchong</small></el-header>
+    <el-container>
+        <el-aside width="200px">
+            <el-menu :default-openeds="['1','2','3']" default-active="1-1">
+                <el-submenu index="1">
+                    <template slot="title"><i class="el-icon-pie-chart"></i>可视化图</template>
+                    <el-menu-item-group>
+                        <template slot="title">总数据全局演变</template>
+                        <el-menu-item index="1-1" @click="goto(1)">人口与GDP时间演变</el-menu-item>
+                        <el-menu-item index="1-2" @click="goto(2)">各国总GDP滚动演变</el-menu-item>
+                    </el-menu-item-group>
+                    <el-menu-item index="1-3" @click="goto(3)">关键时间点人口增长</el-menu-item>
+                    <el-menu-item-group>
+                        <template slot="title">关键时间点人均寿命</template>
+                        <el-menu-item index="1-4" @click="goto(4)">排名趋势走向可视化</el-menu-item>
+                        <el-menu-item index="1-5" @click="goto(5)">数值趋势走向可视化</el-menu-item>
+                    </el-menu-item-group>
+                    <el-menu-item-group>
+                        <template slot="title">关键时间点人均GDP</template>
+                        <el-menu-item index="1-6" @click="goto(6)">折线图趋势走向可视化</el-menu-item>
+                        <el-menu-item index="1-7" @click="goto(7)">归一化堆叠柱状可视化</el-menu-item>
+                    </el-menu-item-group>
+                </el-submenu>
+                <el-menu-item index="2-1" @click="goto(8)"><i class="el-icon-connection"></i>数据分析</el-menu-item>
+                <el-submenu index="3">
+                    <template slot="title"><i class="el-icon-tickets"></i>项目介绍</template>
+                    <el-menu-item index="3-1" @click="goto(9)">数据集介绍</el-menu-item>
+                    <el-menu-item index="3-2" @click="goto(10)">技术栈介绍</el-menu-item>
+                </el-submenu>
+            </el-menu>
+        </el-aside>
+        <el-main>
+            <transition name="el-fade-in-linear">
+                <div class="transition-box" id="life-time-line" style="height:100%" v-show="index==1"></div>
+            </transition>
+            <transition name="el-fade-in-linear">
+                <div class="transition-box" id="total-gdp" style="height:100%" v-show="index==2"></div>
+            </transition>
+            <transition name="el-fade-in-linear">
+                <div class="transition-box" id="key-time-population" style="height:100%" v-show="index==3"></div>
+            </transition>
+            <transition>
+                <div class="transition-box" id="key-time-lifeexpendancy" style="height:100%" v-show="index==4"></div>
+            </transition>
+            <transition>
+                <div class="transition-box" id="key-time-lifeexpendancy-num" style="height:100%" v-show="index==5">
+                </div>
+            </transition>
+            <transition>
+                <div class="transition-box" id="key-time-gdp" style="height:100%" v-show="index==6"></div>
+            </transition>
+            <transition>
+                <div class="transition-box" id="key-time-gdp-normal" style="height:100%" v-show="index==7"></div>
+            </transition>
+            <transition>
+                <div class="transition-box" id="analysis" style="height:100%" v-show="index==8">
+                    <div class="a_main">
+                        <el-carousel :interval="4000" type="card" height="350px">
+                            <el-carousel-item v-for="link in images" :key="link">
+                                <el-image :src="link" fit="cover"></el-image>
+                            </el-carousel-item>
+                        </el-carousel>
+
+                        <h3 class="content">人口分布变化分析</h3>
+                        <p>人口数据的变化显示了各国人口的增长趋势。以下是一些观察点：</p>
+                        <p>1800年
+                            最少：冰岛（61428人）
+                            最多：中国（321675013人）
+                            1850年
+                            最少：冰岛（74711人）
+                            最多：中国（402711280人）
+                            1900年
+                            最少：冰岛（77961人）
+                            最多：中国（429437950人）
+                            1950年
+                            最少：冰岛（143749人）
+                            最多：中国（597745535人）
+                            2000年
+                            最少：冰岛（281191人）
+                            最多：中国（1262645000人）
+                            2015年
+                            最少：冰岛（323764人）
+                            最多：中国（1376048943人）</p>
+                        <p>人口增长的主要驱动力包括出生率、死亡率、移民等。中国和印度等国由于基数大，其人口增长显得尤为明显。而冰岛等小国，虽然增长率较高，但人口基数小，总人口相对较少。</p>
+                        <h3 class="content">人均GDP变化分析</h3>
+                        <p> 人均GDP的初始值从1800年开始，各国的分布较为广泛，最低的为579美元（朝鲜），最高的为3431美元（英国）。随着时间的推移，全球人均GDP整体呈现上升趋势，但各国之间的增长速度和幅度存在显著差异。
+                        </p>
+                        <p> 1800年
+                            最低：朝鲜（579美元）
+                            最高：英国（3431美元）
+                            1850年
+                            最低：朝鲜（550美元）
+                            最高：英国（4480美元）
+                            1900年
+                            最低：中国（676美元）
+                            最高：美国（4643美元）
+                            1950年
+                            最低：印度（619美元）
+                            最高：美国（9617美元）
+                            2000年
+                            最低：印度（1824美元）
+                            最高：美国（41712美元）
+                            2015年
+                            最低：朝鲜（1662美元）</p>
+                        <p> 人均GDP的差距随着时间的推移变得更加显著，特别是在工业革命之后，西方国家（如英国、美国、德国）的经济迅速发展，而一些发展中国家（如印度、中国）在人均GDP上相对较低，但在近现代（尤其是2000年后）这些国家开始迅速增长。
+                        </p>
+                        <h3 class="content">人均寿命变化分析</h3>
+                        <p>人均寿命也是一个重要的指标，从1800年到2015年，各国的平均寿命普遍呈现上升趋势。</p>
+                        <p>800年
+                            最低：印度（25.4424年）
+                            最高：澳大利亚和新西兰（34.05年）
+                            1850年
+                            最低：印度（25.4424年）
+                            最高：新西兰（34.05年）
+                            1900年
+                            最低：印度（25.4424年）
+                            最高：冰岛（50.2064年）
+                            1950年
+                            最低：印度（37.0824年）
+                            最高：冰岛（72.0496年）
+                            2000年
+                            最低：印度（62.4496年）
+                            最高：日本（79.5384年）
+                            2015年
+                            最低：印度（68.35年）
+                            最高：日本（83.4年）</p>
+                        <p>寿命的增加与医疗卫生条件的改善、科技的进步、经济发展等密切相关。以日本为例，其在现代社会中的高寿命水平主要得益于其完善的医疗体系和高水平的生活质量。</p>
+                        <h3 class="content">变化原因分析</h3>
+                        <p>1800-1900年
+                            工业革命的爆发使得西方国家（如英国、美国）的人均GDP和平均寿命显著提升。这一时期，许多国家开始工业化，经济结构发生巨大变化，农业向工业转型。
+
+                            1900-1950年
+                            这一时期经历了两次世界大战和大萧条，全球经济受到巨大冲击。尽管如此，西方国家的人均GDP和平均寿命仍保持增长，特别是战后经济复苏和技术进步对这些指标的推动作用显著。
+
+                            1950-2000年
+                            二战后，全球经济进入快速发展期。美国在战后成为全球经济的领导者，其人均GDP在这一时期大幅增长。亚洲国家（如日本、韩国）也开始崛起，通过现代化改革和工业化，实现了经济的迅速发展。
+
+                            2000-2015年
+                            进入21世纪后，全球化进程加快，信息技术革命推动了经济的发展。中国和印度等新兴经济体的快速发展使得全球经济格局发生显著变化。这一时期，全球人均寿命普遍提升，医疗卫生条件的改善起到关键作用。
+
+                        </p>
+                        <p>工业革命：工业革命是推动19世纪和20世纪初期西方国家经济快速发展的主要原因。工业化进程带来了生产力的大幅提升和经济结构的转型。
+
+                            战争和政治动荡：两次世界大战和冷战对全球经济和社会产生了深远影响。一些国家因战争遭受重大损失，而战后重建和经济援助也促进了经济复苏和发展。
+
+                            技术进步：20世纪中后期，科技进步（如电气化、信息化）极大地提升了生产效率，推动了经济增长，同时也改善了人们的生活质量和健康状况。
+
+                            全球化：全球化进程加快，国际贸易和投资的增加使得各国经济更加互联。新兴市场国家（如中国、印度）通过开放政策和改革实现了快速发展，成为全球经济增长的重要引擎。
+
+                            政策和制度改革：许多国家通过经济政策和制度改革促进了经济发展和社会进步。比如，中国在20世纪70年代末开始的改革开放政策，极大地推动了经济增长和人民生活水平的提高。</p>
+                        <p>综上所述，这个数据集展示了19个国家在过去两个多世纪中的经济和社会变迁。通过分析人均GDP、平均寿命和人口的变化，可以看到工业革命、战争、技术进步、全球化和政策改革等因素对这些国家的发展产生了深远影响。理解这些变化的原因和趋势对于制定未来的发展战略和政策具有重要意义。
+                        </p>
+                    </div>
+
+                </div>
+            </transition>
+            <transition>
+                <div id="dataset" style="height:100%" v-show="index==9">
+                    <div class="a_main">
+                        <h3 class="logo"><img class="icon prefix" src="logo.png" alt="logo">数据集关键字</h3>
+                        <p>数据集存储从1800-2015年每一个国家的人均GDP,总人口，人均寿命的变化，采用json格式存储，国家包含中日美法英俄等19个主要国家包含发达国家与发展中国家，特征覆盖面广，数据内容丰富可用来进行数据可视化与数据分析。
+                        </p>
+                        <pre class="line-numbers">
+                            <code class="language-json">
+                              {
+                                "counties": [
+                                        "China",
+                                        "United States",
+                                        "United Kingdom",
+                                        "Russia",
+                                        "India",
+                                        "France",
+                                        "Germany",
+                                        "Australia",
+                                        "Canada",
+                                        "Cuba",
+                                        "Finland",
+                                        "Iceland",
+                                        "Japan",
+                                        "North Korea",
+                                        "South Korea",
+                                        "New Zealand",
+                                        "Norway",
+                                        "Poland",
+                                        "Turkey"
+                                    ],
+                                    "timeline": [
+                                        1800,
+                                        1810,
+                                        1820,
+                                        1830,
+                                        1840,
+                                        1850,
+                                        1860,
+                                        1870,
+                                        1880,
+                                        1890,
+                                        ...//至2015
+                                     ],
+                                     "series":[
+                                        [//1800年所有国家的数据
+                                            [
+                                                815,
+                                                34.05,
+                                                351014,
+                                                "Australia",
+                                                1800
+                                            ],
+                                            [
+                                                    1314,
+                                                    39,
+                                                    645526,
+                                                    "Canada",
+                                                    1800
+                                            ],
+                                        ],
+                                        [//1810年所有国家的数据
+                                          ...
+                                        ]
+                                    ]
+                              }
+                            </code>
+                          </pre>
+                    </div>
+                </div>
+            </transition>
+            <transition>
+                <div id="tools" style="height:100%" v-show="index==10">
+                    <h3 class="logo"><img class="icon prefix" src="logo.png" alt="logo">技术栈</h3>
+                    <div class="wrapper">
+                        <li><code><img height="80px" alt="js" src="https://github.com/Langwenchong/Langwenchong/raw/main/img/vue.svg"></code>
+                        </li>
+                        <li><code><img height="80px" alt="js" src="https://github.com/pengpenglang/pengpenglang/raw/main/img/html.svg"></code>
+                        </li>
+                        <li><code><img height="80px" alt="js" src="https://github.com/pengpenglang/pengpenglang/raw/main/img/css.svg"></code>
+                        </li>
+                        <li><code><img height="80px" alt="js" src="https://github.com/Langwenchong/Langwenchong/raw/main/img/js.svg"></code>
+                        </li>
+                        <li><code><img height="80px" alt="js" src="./echart.png"></code></li>
+                        <li><code><img height="80px" alt="js" src="https://github.com/Langwenchong/Langwenchong/raw/main/img/vscode.svg"></code>
+                        </li>
+                    </div>
+                    <h3 class="logo"><img class="icon prefix" src="logo.png" alt="logo">人口与GDP时间演变可视化绘图代码</h3>
+                    <pre class="line-numbers">
+                        <code class="language-js">
+                            var dom = document.getElementById('life-time-line');
+                            var myChart = echarts.init(dom, null, {
+                                renderer: 'canvas',
+                                useDirtyRect: false
+                            });
+                            var app = {};
+                            var option;
+                            myChart.showLoading();
+                            $.get('./data.json', function (data) {
+                                myChart.hideLoading();
+                                var itemStyle = {
+                                    opacity: 0.8
+                                };
+                                var sizeFunction = function (x) {
+                                    var y = Math.sqrt(x / 5e8) + 0.1;
+                                    return y * 80;
+                                };
+                                // Schema:
+                                var schema = [
+                                    { name: 'Income', index: 0, text: '人均收入', unit: '美元' },
+                                    { name: 'LifeExpectancy', index: 1, text: '人均寿命', unit: '岁' },
+                                    { name: 'Population', index: 2, text: '总人口', unit: '' },
+                                    { name: 'Country', index: 3, text: '国家', unit: '' }
+                                ];
+                                option = {
+                                    baseOption: {
+                                        timeline: {
+                                            axisType: 'category',
+                                            orient: 'vertical',
+                                            autoPlay: true,
+                                            inverse: true,
+                                            playInterval: 1000,
+                                            left: null,
+                                            right: 0,
+                                            top: 20,
+                                            bottom: 20,
+                                            width: 55,
+                                            height: null,
+                                            symbol: 'none',
+                                            checkpointStyle: {
+                                                borderWidth: 2
+                                            },
+                                            controlStyle: {
+                                                showNextBtn: false,
+                                                showPrevBtn: false
+                                            },
+                                            data: []
+                                        },
+                                        title: [
+                                            {
+                                                text: data.timeline[0],
+                                                textAlign: 'center',
+                                                left: '63%',
+                                                top: '55%',
+                                                textStyle: {
+                                                    fontSize: 100
+                                                }
+                                            },
+                                        ],
+                                        tooltip: {
+                                            padding: 5,
+                                            borderWidth: 1,
+                                            formatter: function (obj) {
+                                                var value = obj.value;
+                                                // prettier-ignore
+                                                return schema[3].text + '：' + value[3] + '<br>'
+                                                    + schema[1].text + '：' + value[1] + schema[1].unit + '<br>'
+                                                    + schema[0].text + '：' + value[0] + schema[0].unit + '<br>'
+                                                    + schema[2].text + '：' + value[2] + '<br>';
+                                            }
+                                        },
+                                        grid: {
+                                            top: 100,
+                                            containLabel: true,
+                                            left: 30,
+                                            right: '110'
+                                        },
+                                        xAxis: {
+                                            type: 'log',
+                                            name: '人均收入',
+                                            max: 100000,
+                                            min: 300,
+                                            nameGap: 25,
+                                            nameLocation: 'middle',
+                                            nameTextStyle: {
+                                                fontSize: 18
+                                            },
+                                            splitLine: {
+                                                show: false
+                                            },
+                                            axisLabel: {
+                                                formatter: '{value} $'
+                                            }
+                                        },
+                                        yAxis: {
+                                            type: 'value',
+                                            name: '平均寿命',
+                                            max: 100,
+                                            nameTextStyle: {
+                                                fontSize: 18
+                                            },
+                                            splitLine: {
+                                                show: false
+                                            },
+                                            axisLabel: {
+                                                formatter: '{value} 岁'
+                                            }
+                                        },
+                                        visualMap: [
+                                            {
+                                                show: false,
+                                                dimension: 3,
+                                                categories: data.counties,
+                                                inRange: {
+                                                    color: (function () {
+                                                        // prettier-ignore
+                                                        var colors = ['#51689b', '#ce5c5c', '#fbc357', '#8fbf8f', '#659d84', '#fb8e6a', '#c77288', '#786090', '#91c4c5', '#6890ba'];
+                                                        return colors.concat(colors);
+                                                    })()
+                                                }
+                                            }
+                                        ],
+                                        series: [
+                                            {
+                                                type: 'scatter',
+                                                itemStyle: itemStyle,
+                                                data: data.series[0],
+                                                symbolSize: function (val) {
+                                                    return sizeFunction(val[2]);
+                                                }
+                                            }
+                                        ],
+                                        animationDurationUpdate: 1000,
+                                        animationEasingUpdate: 'quinticInOut'
+                                    },
+                                    options: []
+                                };
+                                for (var n = 0; n < data.timeline.length; n++) {
+                                    option.baseOption.timeline.data.push(data.timeline[n]);
+                                    option.options.push({
+                                        title: {
+                                            show: true,
+                                            text: data.timeline[n] + ''
+                                        },
+                                        series: {
+                                            name: data.timeline[n],
+                                            type: 'scatter',
+                                            itemStyle: itemStyle,
+                                            data: data.series[n],
+                                            symbolSize: function (val) {
+                                                return sizeFunction(val[2]);
+                                            }
+                                        }
+                                    });
+                                }
+                                myChart.setOption(option);
+                                if (option && typeof option === 'object') {
+                                    myChart.setOption(option);
+                                }
+            
+                                window.addEventListener('resize', myChart.resize);
+                            });
+                        
+                        </code>
+                      </pre>
+                    <h3 class="logo"><img class="icon prefix" src="logo.png" alt="logo">各国GDP滚动演变演变可视化绘图代码</h3>
+                    <pre class="line-numbers">
+                        <code class="language-js">
+                            var dom = document.getElementById('total-gdp');
+                            var myChart = echarts.init(dom, null, {
+                                renderer: 'canvas',
+                                useDirtyRect: false
+                            });
+                            var app = {};
+                            var option;
+            
+                            const updateFrequency = 2000;
+                            const dimension = 5;
+                            const countryColors = {
+                                Australia: '#003f5c',
+                                Canada: '#58508d',
+                                China: '#ff0000',
+                                Cuba: '#ff6361',
+                                Finland: '#ffa600',
+                                France: '#ff7c43',
+                                Germany: '#ff6361',
+                                Iceland: '#58508d',
+                                India: '#00ff00',
+                                Japan: '#ffa600',
+                                'North Korea': '#ff7c43',
+                                'South Korea': '#003f5c',
+                                'New Zealand': '#58508d',
+                                Norway: '#bc5090',
+                                Poland: '#ffa600',
+                                Russia: '#ff7c43',
+                                Turkey: '#003f5c',
+                                'United Kingdom': '#58508d',
+                                'United States': '#bc5090'
+                            };
+                            $.when(
+                                $.getJSON('https://fastly.jsdelivr.net/npm/emoji-flags@1.3.0/data.json'),
+                                $.getJSON('data.json')
+                            ).done(function (res0, res1) {
+                                console.log(res0, res1)
+                                // const flags = res0[0];
+                                var data = [[
+                                    "Income",
+                                    "Life Expectancy",
+                                    "Population",
+                                    "Country",
+                                    "Year"
+                                ]];
+                                const flags = res0[0];
+                                const tmp_data = res1[0]['series'];
+                                tmp_data.forEach((arr) => {
+                                    data = data.concat(arr);
+                                })
+                                console.log(data)
+                                data.forEach(function (item) {
+                                    item.push(item[0] * item[2])
+                                });
+                                // console.log(flags)
+                                // console.log(data)
+                                const years = [];
+                                for (let i = 0; i < data.length; ++i) {
+                                    if (years.length === 0 || years[years.length - 1] !== data[i][4]) {
+                                        years.push(data[i][4]);
+                                    }
+                                }
+                                function getFlag(countryName) {
+                                    if (!countryName) {
+                                        return '';
+                                    }
+                                    return (
+                                        flags.find(function (item) {
+                                            return item.name === countryName;
+                                        }) || {}
+                                    ).emoji;
+                                }
+                                let startIndex = 10;
+                                let startYear = years[startIndex];
+                                option = {
+                                    grid: {
+                                        top: 10,
+                                        bottom: 30,
+                                        left: 150,
+                                        right: 80
+                                    },
+                                    xAxis: {
+                                        max: 'dataMax',
+                                        axisLabel: {
+                                            formatter: function (n) {
+                                                return Math.round(n) + '';
+                                            }
+                                        }
+                                    },
+                                    dataset: {
+                                        source: data.slice(1).filter(function (d) {
+                                            return d[4] === startYear;
+                                        })
+                                    },
+                                    yAxis: {
+                                        type: 'category',
+                                        inverse: true,
+                                        max: 10,
+                                        axisLabel: {
+                                            show: true,
+                                            fontSize: 14,
+                                            formatter: function (value) {
+                                                return value + '{flag|' + getFlag(value) + '}';
+                                            },
+                                            rich: {
+                                                flag: {
+                                                    fontSize: 25,
+                                                    padding: 5
+                                                }
+                                            }
+                                        },
+                                        animationDuration: 300,
+                                        animationDurationUpdate: 300
+                                    },
+                                    series: [
+                                        {
+                                            realtimeSort: true,
+                                            seriesLayoutBy: 'column',
+                                            type: 'bar',
+                                            itemStyle: {
+                                                color: function (param) {
+                                                    return countryColors[param.value[3]] || '#5470c6';
+                                                }
+                                            },
+                                            encode: {
+                                                x: dimension,
+                                                y: 3
+                                            },
+                                            label: {
+                                                show: true,
+                                                precision: 1,
+                                                position: 'right',
+                                                valueAnimation: true,
+                                                fontFamily: 'monospace'
+                                            }
+                                        }
+                                    ],
+                                    // Disable init animation.
+                                    animationDuration: 0,
+                                    animationDurationUpdate: updateFrequency,
+                                    animationEasing: 'linear',
+                                    animationEasingUpdate: 'linear',
+                                    graphic: {
+                                        elements: [
+                                            {
+                                                type: 'text',
+                                                right: 160,
+                                                bottom: 60,
+                                                style: {
+                                                    text: startYear,
+                                                    font: 'bolder 80px monospace',
+                                                    fill: 'rgba(100, 100, 100, 0.25)'
+                                                },
+                                                z: 100
+                                            }
+                                        ]
+                                    }
+                                };
+                                // console.log(option);
+                                myChart.setOption(option);
+                                for (let i = startIndex; i < years.length - 1; ++i) {
+                                    (function (i) {
+                                        setTimeout(function () {
+                                            updateYear(years[i + 1]);
+                                        }, (i - startIndex) * updateFrequency);
+                                    })(i);
+                                }
+                                function updateYear(year) {
+                                    let source = data.slice(1).filter(function (d) {
+                                        return d[4] === year;
+                                    });
+                                    option.series[0].data = source;
+                                    option.graphic.elements[0].style.text = year;
+                                    myChart.setOption(option);
+                                }
+                            });
+            
+                            if (option && typeof option === 'object') {
+                                myChart.setOption(option);
+                            }
+            
+                            window.addEventListener('resize', myChart.resize);
+                        </code>
+                        </pre>
+                    <h3 class="logo"><img class="icon prefix" src="logo.png" alt="logo">各国GDP滚动演变演变可视化绘图代码</h3>
+                    <pre class="line-numbers">
+                            <code class="language-js">
+                                var dom = document.getElementById('key-time-population');
+                                var myChart = echarts.init(dom, null, {
+                                    renderer: 'canvas',
+                                    useDirtyRect: false
+                                });
+                                var app = {};
+                
+                                var option;
+                                $.get('./data.json', function (data) {
+                                    var counties = [], timeline = [], series = [];
+                                    counties = data.counties;
+                                    timeline = data.timeline;
+                                    series = data.series;
+                                    line_series = []
+                                    var source = [['Income']]
+                                    var map = new Map();
+                                    for (let i = 0; i < counties.length; i++) {
+                                        map.set(counties[i], [counties[i]])
+                                    }
+                                    for (let i = 0; i < series.length; i += 10) {
+                                        tmp_list = series[i];
+                                        // console.log(tmp_list)
+                                        source[0].push(tmp_list[0][4])
+                                        for (let j = 0; j < tmp_list.length; j++) {
+                                            element = tmp_list[j];
+                                            value = map.get(element[3]);
+                                            value.push(element[2])
+                                            map.set(element[3], value)
+                                        }
+                                    }
+                                    map.forEach((value, key) => {
+                                        source.push(value)
+                                    })
+                                    // console.log(source);
+                                    for (let i = 0; i < source.length - 1; i++) {
+                                        line_series.push({
+                                            type: 'line',
+                                            smooth: true,
+                                            seriesLayoutBy: 'row',
+                                            emphasis: { focus: 'series' }
+                                        })
+                                    }
+                                    line_series.push({
+                                        type: 'pie',
+                                        id: 'pie',
+                                        radius: '35%',
+                                        center: ['50%', '25%'],
+                                        emphasis: {
+                                            focus: 'self'
+                                        },
+                                        label: {
+                                            formatter: '{@1800} ({d}%)'
+                                        },
+                                        encode: {
+                                            itemName: 'Income',
+                                            value: 1800,
+                                            tooltip: 1800
+                                        }
+                                    })
+                                    setTimeout(function () {
+                                        option = {
+                                            aria: {
+                                                enabled: true,
+                                                decal: {
+                                                    show: true,
+                                                    decals: [
+                                                        // { symbol: 'rect' },
+                                                        { symbol: 'circle' },
+                                                        // { symbol: 'roundRect' },
+                                                        // { symbol: 'triangle' },
+                                                        // { symbol: 'diamond' },
+                                                        // { symbol: 'pin' },
+                                                        // { symbol: 'arrow' }
+                                                    ]
+                                                }
+                                            },
+                                            legend: {},
+                                            tooltip: {
+                                                trigger: 'axis',
+                                                showContent: true
+                                            },
+                                            dataset: {
+                                                source: source
+                                            },
+                                            xAxis: { type: 'category' },
+                                            yAxis: { gridIndex: 0 },
+                                            grid: { top: '55%' },
+                                            series: line_series
+                                        };
+                                        myChart.on('updateAxisPointer', function (event) {
+                                            const xAxisInfo = event.axesInfo[0];
+                                            if (xAxisInfo) {
+                                                const dimension = xAxisInfo.value + 1;
+                                                myChart.setOption({
+                                                    series: {
+                                                        id: 'pie',
+                                                        label: {
+                                                            formatter: '{@[' + dimension + ']} ({d}%)'
+                                                        },
+                                                        encode: {
+                                                            value: dimension,
+                                                            tooltip: dimension
+                                                        }
+                                                    }
+                                                });
+                                            }
+                                        });
+                                        myChart.setOption(option);
+                                    });
+                                    if (option && typeof option === 'object') {
+                                        myChart.setOption(option);
+                                    }
+                
+                                    window.addEventListener('resize', myChart.resize);
+                                });
+                            </code>
+                            </pre>
+                            <p>更多可视化代码等请查看github仓库 <a href="https://github.com/Langwenchong/DataVisualization">https://github.com/Langwenchong/DataVisualization</a></p>
+                </div>
+            </transition>
+        </el-main>
+    </el-container>
+</div>
+
+
+<script>
+    new Vue({
+        el: '#app',
+        mounted() {
+            this.echart01();
+        },
+        data() {
+            return {
+                index: '1',
+                title: `人口与GDP时间演变`,
+                images: [
+                    "1-1.png",
+                    "1-2.png",
+                    "1-3.png",
+                    "1-4.png",
+                    "1-5.png",
+                    "1-6.png",
+                    "1-7.png",
+                ]
+            }
+        },
+        methods: {
+            goto(index) {
+                var text = document.getElementsByClassName('el-menu-item')[index - 1].innerText;
+                this.title = text;
+                this.index = index;
+                if (index <= 7) {
+                    setTimeout(() => {
+                        this['echart0' + index]();
+                    }, 100)
+                }
+            },
+            echart01() {
+                var dom = document.getElementById('life-time-line');
+                var myChart = echarts.init(dom, null, {
+                    renderer: 'canvas',
+                    useDirtyRect: false
+                });
+                var app = {};
+                var option;
+                myChart.showLoading();
+                $.get('./data.json', function (data) {
+                    myChart.hideLoading();
+                    var itemStyle = {
+                        opacity: 0.8
+                    };
+                    var sizeFunction = function (x) {
+                        var y = Math.sqrt(x / 5e8) + 0.1;
+                        return y * 80;
+                    };
+                    // Schema:
+                    var schema = [
+                        { name: 'Income', index: 0, text: '人均收入', unit: '美元' },
+                        { name: 'LifeExpectancy', index: 1, text: '人均寿命', unit: '岁' },
+                        { name: 'Population', index: 2, text: '总人口', unit: '' },
+                        { name: 'Country', index: 3, text: '国家', unit: '' }
+                    ];
+                    option = {
+                        baseOption: {
+                            timeline: {
+                                axisType: 'category',
+                                orient: 'vertical',
+                                autoPlay: true,
+                                inverse: true,
+                                playInterval: 1000,
+                                left: null,
+                                right: 0,
+                                top: 20,
+                                bottom: 20,
+                                width: 55,
+                                height: null,
+                                symbol: 'none',
+                                checkpointStyle: {
+                                    borderWidth: 2
+                                },
+                                controlStyle: {
+                                    showNextBtn: false,
+                                    showPrevBtn: false
+                                },
+                                data: []
+                            },
+                            title: [
+                                {
+                                    text: data.timeline[0],
+                                    textAlign: 'center',
+                                    left: '63%',
+                                    top: '55%',
+                                    textStyle: {
+                                        fontSize: 100
+                                    }
+                                },
+                            ],
+                            tooltip: {
+                                padding: 5,
+                                borderWidth: 1,
+                                formatter: function (obj) {
+                                    var value = obj.value;
+                                    // prettier-ignore
+                                    return schema[3].text + '：' + value[3] + '<br>'
+                                        + schema[1].text + '：' + value[1] + schema[1].unit + '<br>'
+                                        + schema[0].text + '：' + value[0] + schema[0].unit + '<br>'
+                                        + schema[2].text + '：' + value[2] + '<br>';
+                                }
+                            },
+                            grid: {
+                                top: 100,
+                                containLabel: true,
+                                left: 30,
+                                right: '110'
+                            },
+                            xAxis: {
+                                type: 'log',
+                                name: '人均收入',
+                                max: 100000,
+                                min: 300,
+                                nameGap: 25,
+                                nameLocation: 'middle',
+                                nameTextStyle: {
+                                    fontSize: 18
+                                },
+                                splitLine: {
+                                    show: false
+                                },
+                                axisLabel: {
+                                    formatter: '{value} $'
+                                }
+                            },
+                            yAxis: {
+                                type: 'value',
+                                name: '平均寿命',
+                                max: 100,
+                                nameTextStyle: {
+                                    fontSize: 18
+                                },
+                                splitLine: {
+                                    show: false
+                                },
+                                axisLabel: {
+                                    formatter: '{value} 岁'
+                                }
+                            },
+                            visualMap: [
+                                {
+                                    show: false,
+                                    dimension: 3,
+                                    categories: data.counties,
+                                    inRange: {
+                                        color: (function () {
+                                            // prettier-ignore
+                                            var colors = ['#51689b', '#ce5c5c', '#fbc357', '#8fbf8f', '#659d84', '#fb8e6a', '#c77288', '#786090', '#91c4c5', '#6890ba'];
+                                            return colors.concat(colors);
+                                        })()
+                                    }
+                                }
+                            ],
+                            series: [
+                                {
+                                    type: 'scatter',
+                                    itemStyle: itemStyle,
+                                    data: data.series[0],
+                                    symbolSize: function (val) {
+                                        return sizeFunction(val[2]);
+                                    }
+                                }
+                            ],
+                            animationDurationUpdate: 1000,
+                            animationEasingUpdate: 'quinticInOut'
+                        },
+                        options: []
+                    };
+                    for (var n = 0; n < data.timeline.length; n++) {
+                        option.baseOption.timeline.data.push(data.timeline[n]);
+                        option.options.push({
+                            title: {
+                                show: true,
+                                text: data.timeline[n] + ''
+                            },
+                            series: {
+                                name: data.timeline[n],
+                                type: 'scatter',
+                                itemStyle: itemStyle,
+                                data: data.series[n],
+                                symbolSize: function (val) {
+                                    return sizeFunction(val[2]);
+                                }
+                            }
+                        });
+                    }
+                    myChart.setOption(option);
+                    if (option && typeof option === 'object') {
+                        myChart.setOption(option);
+                    }
+
+                    window.addEventListener('resize', myChart.resize);
+                });
+            },
+            echart03() {
+                var dom = document.getElementById('key-time-population');
+                var myChart = echarts.init(dom, null, {
+                    renderer: 'canvas',
+                    useDirtyRect: false
+                });
+                var app = {};
+
+                var option;
+                $.get('./data.json', function (data) {
+                    var counties = [], timeline = [], series = [];
+                    counties = data.counties;
+                    timeline = data.timeline;
+                    series = data.series;
+                    line_series = []
+                    var source = [['Income']]
+                    var map = new Map();
+                    for (let i = 0; i < counties.length; i++) {
+                        map.set(counties[i], [counties[i]])
+                    }
+                    for (let i = 0; i < series.length; i += 10) {
+                        tmp_list = series[i];
+                        // console.log(tmp_list)
+                        source[0].push(tmp_list[0][4])
+                        for (let j = 0; j < tmp_list.length; j++) {
+                            element = tmp_list[j];
+                            value = map.get(element[3]);
+                            value.push(element[2])
+                            map.set(element[3], value)
+                        }
+                    }
+                    map.forEach((value, key) => {
+                        source.push(value)
+                    })
+                    // console.log(source);
+                    for (let i = 0; i < source.length - 1; i++) {
+                        line_series.push({
+                            type: 'line',
+                            smooth: true,
+                            seriesLayoutBy: 'row',
+                            emphasis: { focus: 'series' }
+                        })
+                    }
+                    line_series.push({
+                        type: 'pie',
+                        id: 'pie',
+                        radius: '35%',
+                        center: ['50%', '25%'],
+                        emphasis: {
+                            focus: 'self'
+                        },
+                        label: {
+                            formatter: '{@1800} ({d}%)'
+                        },
+                        encode: {
+                            itemName: 'Income',
+                            value: 1800,
+                            tooltip: 1800
+                        }
+                    })
+                    setTimeout(function () {
+                        option = {
+                            aria: {
+                                enabled: true,
+                                decal: {
+                                    show: true,
+                                    decals: [
+                                        // { symbol: 'rect' },
+                                        { symbol: 'circle' },
+                                        // { symbol: 'roundRect' },
+                                        // { symbol: 'triangle' },
+                                        // { symbol: 'diamond' },
+                                        // { symbol: 'pin' },
+                                        // { symbol: 'arrow' }
+                                    ]
+                                }
+                            },
+                            legend: {},
+                            tooltip: {
+                                trigger: 'axis',
+                                showContent: true
+                            },
+                            dataset: {
+                                source: source
+                            },
+                            xAxis: { type: 'category' },
+                            yAxis: { gridIndex: 0 },
+                            grid: { top: '55%' },
+                            series: line_series
+                        };
+                        myChart.on('updateAxisPointer', function (event) {
+                            const xAxisInfo = event.axesInfo[0];
+                            if (xAxisInfo) {
+                                const dimension = xAxisInfo.value + 1;
+                                myChart.setOption({
+                                    series: {
+                                        id: 'pie',
+                                        label: {
+                                            formatter: '{@[' + dimension + ']} ({d}%)'
+                                        },
+                                        encode: {
+                                            value: dimension,
+                                            tooltip: dimension
+                                        }
+                                    }
+                                });
+                            }
+                        });
+                        myChart.setOption(option);
+                    });
+                    if (option && typeof option === 'object') {
+                        myChart.setOption(option);
+                    }
+
+                    window.addEventListener('resize', myChart.resize);
+                });
+            },
+            echart04() {
+                var dom = document.getElementById('key-time-lifeexpendancy');
+                var myChart = echarts.init(dom, null, {
+                    renderer: 'canvas',
+                    useDirtyRect: false
+                });
+                var app = {};
+
+                var option;
+                $.get('./data.json', function (data) {
+                    var counties = [], timeline = [], series = [];
+                    counties = data.counties;
+                    timeline = data.timeline;
+                    series = data.series;
+                    const names = counties;
+                    // console.log(names)
+                    var years = [];
+                    var map = new Map();
+                    for (let i = 0; i < counties.length; i++) {
+                        map.set(counties[i], [])
+                    }
+                    for (let i = 0; i < series.length; i += 10) {
+                        tmp_list = series[i];
+                        years.push(tmp_list[0][4])
+                        var obj_list = []
+                        for (let j = 0; j < tmp_list.length; j++) {
+                            element = tmp_list[j];
+                            value = element[1];
+                            var obj = {
+                                name: element[3],
+                                value: value
+                            }
+                            obj_list.push(obj)
+                        }
+                        obj_list.sort((a, b) => b.value - a.value);
+                        obj_list.forEach((element, index) => {
+                            var value = map.get(element.name);
+                            value.push(index + 1)
+                            map.set(element.name, value)
+                        });
+                    }
+
+                    var seriesList = [];
+                    const rankingMap = map;
+                    rankingMap.forEach((data, name) => {
+                        const series = {
+                            name,
+                            symbolSize: 20,
+                            type: 'line',
+                            smooth: true,
+                            emphasis: {
+                                focus: 'series'
+                            },
+                            endLabel: {
+                                show: true,
+                                formatter: '{a}',
+                                distance: 20
+                            },
+                            lineStyle: {
+                                width: 4
+                            },
+                            data
+                        };
+                        seriesList.push(series);
+                    });
+                    // console.log(seriesList)
+                    // console.log(years)
+                    option = {
+                        title: {
+                            text: '排名(1-19自然排序)'
+                        },
+                        tooltip: {
+                            trigger: 'item'
+                        },
+                        grid: {
+                            left: 30,
+                            right: 110,
+                            bottom: 30,
+                            containLabel: true
+                        },
+                        toolbox: {
+                            feature: {
+                                saveAsImage: {}
+                            }
+                        },
+                        xAxis: {
+                            type: 'category',
+                            splitLine: {
+                                show: true
+                            },
+                            axisLabel: {
+                                margin: 30,
+                                fontSize: 16
+                            },
+                            boundaryGap: false,
+                            data: years
+                        },
+                        yAxis: {
+                            type: 'value',
+                            axisLabel: {
+                                margin: 30,
+                                fontSize: 16,
+                                formatter: '#{value}'
+                            },
+                            inverse: true,
+                            interval: 1,
+                            min: 1,
+                            max: names.length
+                        },
+                        series: seriesList
+                    };
+                    if (option && typeof option === 'object') {
+                        myChart.setOption(option);
+                    }
+
+                    window.addEventListener('resize', myChart.resize);
+                });
+            },
+            echart05() {
+                var dom = document.getElementById('key-time-lifeexpendancy-num');
+                var myChart = echarts.init(dom, null, {
+                    renderer: 'canvas',
+                    useDirtyRect: false
+                });
+                var app = {};
+                var option;
+
+                $.get(
+                    './data.json',
+                    function (_rawData) {
+                        console.log(_rawData)
+                        var data = [[
+                            "Income",
+                            "Life Expectancy",
+                            "Population",
+                            "Country",
+                            "Year"
+                        ]]
+                        const tmp_data = _rawData['series'];
+                        tmp_data.forEach((arr) => {
+                            data = data.concat(arr);
+                        })
+                        run(data);
+                    }
+                );
+                function run(_rawData) {
+                    var countries = ['Australia', 'Canada', 'China', 'Cuba', 'Finland', 'France', 'Germany', 'Iceland', 'India', 'Japan', 'North Korea', 'South Korea', 'New Zealand', 'Norway', 'Poland', 'Russia', 'Turkey', 'United Kingdom', 'United States'];
+                    // const countries = [
+                    //     'Finland',
+                    //     'France',
+                    //     'Germany',
+                    //     'Iceland',
+                    //     'Norway',
+                    //     'Poland',
+                    //     'Russia',
+                    //     'United Kingdom'
+                    // ];
+                    const datasetWithFilters = [];
+                    const seriesList = [];
+                    echarts.util.each(countries, function (country) {
+                        var datasetId = 'dataset_' + country;
+                        datasetWithFilters.push({
+                            id: datasetId,
+                            fromDatasetId: 'dataset_raw',
+                            transform: {
+                                type: 'filter',
+                                config: {
+                                    and: [
+                                        { dimension: 'Year', gte: 1950 },
+                                        { dimension: 'Country', '=': country }
+                                    ]
+                                }
+                            }
+                        });
+                        seriesList.push({
+                            type: 'line',
+                            datasetId: datasetId,
+                            showSymbol: false,
+                            name: country,
+                            endLabel: {
+                                show: true,
+                                formatter: function (params) {
+                                    return params.value[3] + ': ' + params.value[1];
+                                }
+                            },
+                            labelLayout: {
+                                moveOverlap: 'shiftY'
+                            },
+                            emphasis: {
+                                focus: 'series'
+                            },
+                            encode: {
+                                x: 'Year',
+                                y: 'Life Expectancy',
+                                label: ['Country', 'Life Expectancy'],
+                                itemName: 'Year',
+                                tooltip: ['Life Expectancy']
+                            }
+                        });
+                    });
+                    option = {
+                        animationDuration: 10000,
+                        dataset: [
+                            {
+                                id: 'dataset_raw',
+                                source: _rawData
+                            },
+                            ...datasetWithFilters
+                        ],
+                        title: {
+                            text: 'Income of Germany and France since 1950'
+                        },
+                        tooltip: {
+                            order: 'valueDesc',
+                            trigger: 'axis'
+                        },
+                        xAxis: {
+                            type: 'category',
+                            nameLocation: 'middle'
+                        },
+                        yAxis: {
+                            name: 'Income'
+                        },
+                        grid: {
+                            right: 140
+                        },
+                        series: seriesList
+                    };
+                    myChart.setOption(option);
+                }
+
+                if (option && typeof option === 'object') {
+                    myChart.setOption(option);
+                }
+
+                window.addEventListener('resize', myChart.resize);
+            },
+            echart06() {
+                var dom = document.getElementById('key-time-gdp');
+                var myChart = echarts.init(dom, null, {
+                    renderer: 'canvas',
+                    useDirtyRect: false
+                });
+                var app = {};
+
+                var option;
+                $.get('./data.json', function (data) {
+                    var counties = [], timeline = [], series = [];
+                    counties = data.counties;
+                    timeline = data.timeline;
+                    series = data.series;
+                    var years = [];
+                    var map = new Map();
+                    for (let i = 0; i < counties.length; i++) {
+                        map.set(counties[i], [])
+                    }
+                    for (let i = 0; i < series.length; i += 10) {
+                        tmp_list = series[i];
+                        years.push(tmp_list[0][4])
+                        // console.log(tmp_list)
+                        for (let j = 0; j < tmp_list.length; j++) {
+                            element = tmp_list[j];
+                            value = map.get(element[3]);
+                            value.push(element[0])
+                            map.set(element[3], value)
+                        }
+                    }
+                    var seriesList = []
+                    counties.forEach((element, index) => {
+                        seriesList.push({
+                            name: element,
+                            type: 'line',
+                            stack: 'Total',
+                            areaStyle: {},
+                            emphasis: {
+                                focus: 'series'
+                            },
+                            data: map.get(element)
+                        })
+                    });
+                    console.log(seriesList)
+                    option = {
+                        aria: {
+                            enabled: true,
+                            decal: {
+                                show: true,
+                                decals: [
+                                    // { symbol: 'rect' },
+                                    // { symbol: 'circle' },
+                                    { symbol: 'roundRect' },
+                                    // { symbol: 'triangle' },
+                                    // { symbol: 'diamond' },
+                                    // { symbol: 'pin' },
+                                    // { symbol: 'arrow' }
+                                ]
+                            }
+                        },
+                        tooltip: {
+                            trigger: 'axis',
+                            axisPointer: {
+                                type: 'cross',
+                                label: {
+                                    backgroundColor: '#6a7985'
+                                }
+                            }
+                        },
+                        legend: {
+                            data: counties
+                        },
+                        toolbox: {
+                            feature: {
+                                saveAsImage: {}
+                            }
+                        },
+                        grid: {
+                            left: '3%',
+                            right: '4%',
+                            bottom: '3%',
+                            containLabel: true
+                        },
+                        xAxis: [
+                            {
+                                type: 'category',
+                                boundaryGap: false,
+                                data: years
+                            }
+                        ],
+                        yAxis: [
+                            {
+                                type: 'value'
+                            }
+                        ],
+                        series: seriesList
+                    };
+
+                    if (option && typeof option === 'object') {
+                        myChart.setOption(option);
+                    }
+
+                    window.addEventListener('resize', myChart.resize);
+                });
+
+            },
+            echart02() {
+                var dom = document.getElementById('total-gdp');
+                var myChart = echarts.init(dom, null, {
+                    renderer: 'canvas',
+                    useDirtyRect: false
+                });
+                var app = {};
+                var option;
+
+                const updateFrequency = 2000;
+                const dimension = 5;
+                const countryColors = {
+                    Australia: '#003f5c',
+                    Canada: '#58508d',
+                    China: '#ff0000',
+                    Cuba: '#ff6361',
+                    Finland: '#ffa600',
+                    France: '#ff7c43',
+                    Germany: '#ff6361',
+                    Iceland: '#58508d',
+                    India: '#00ff00',
+                    Japan: '#ffa600',
+                    'North Korea': '#ff7c43',
+                    'South Korea': '#003f5c',
+                    'New Zealand': '#58508d',
+                    Norway: '#bc5090',
+                    Poland: '#ffa600',
+                    Russia: '#ff7c43',
+                    Turkey: '#003f5c',
+                    'United Kingdom': '#58508d',
+                    'United States': '#bc5090'
+                };
+                $.when(
+                    $.getJSON('https://fastly.jsdelivr.net/npm/emoji-flags@1.3.0/data.json'),
+                    $.getJSON('data.json')
+                ).done(function (res0, res1) {
+                    console.log(res0, res1)
+                    // const flags = res0[0];
+                    var data = [[
+                        "Income",
+                        "Life Expectancy",
+                        "Population",
+                        "Country",
+                        "Year"
+                    ]];
+                    const flags = res0[0];
+                    const tmp_data = res1[0]['series'];
+                    tmp_data.forEach((arr) => {
+                        data = data.concat(arr);
+                    })
+                    console.log(data)
+                    data.forEach(function (item) {
+                        item.push(item[0] * item[2])
+                    });
+                    // console.log(flags)
+                    // console.log(data)
+                    const years = [];
+                    for (let i = 0; i < data.length; ++i) {
+                        if (years.length === 0 || years[years.length - 1] !== data[i][4]) {
+                            years.push(data[i][4]);
+                        }
+                    }
+                    function getFlag(countryName) {
+                        if (!countryName) {
+                            return '';
+                        }
+                        return (
+                            flags.find(function (item) {
+                                return item.name === countryName;
+                            }) || {}
+                        ).emoji;
+                    }
+                    let startIndex = 10;
+                    let startYear = years[startIndex];
+                    option = {
+                        grid: {
+                            top: 10,
+                            bottom: 30,
+                            left: 150,
+                            right: 80
+                        },
+                        xAxis: {
+                            max: 'dataMax',
+                            axisLabel: {
+                                formatter: function (n) {
+                                    return Math.round(n) + '';
+                                }
+                            }
+                        },
+                        dataset: {
+                            source: data.slice(1).filter(function (d) {
+                                return d[4] === startYear;
+                            })
+                        },
+                        yAxis: {
+                            type: 'category',
+                            inverse: true,
+                            max: 10,
+                            axisLabel: {
+                                show: true,
+                                fontSize: 14,
+                                formatter: function (value) {
+                                    return value + '{flag|' + getFlag(value) + '}';
+                                },
+                                rich: {
+                                    flag: {
+                                        fontSize: 25,
+                                        padding: 5
+                                    }
+                                }
+                            },
+                            animationDuration: 300,
+                            animationDurationUpdate: 300
+                        },
+                        series: [
+                            {
+                                realtimeSort: true,
+                                seriesLayoutBy: 'column',
+                                type: 'bar',
+                                itemStyle: {
+                                    color: function (param) {
+                                        return countryColors[param.value[3]] || '#5470c6';
+                                    }
+                                },
+                                encode: {
+                                    x: dimension,
+                                    y: 3
+                                },
+                                label: {
+                                    show: true,
+                                    precision: 1,
+                                    position: 'right',
+                                    valueAnimation: true,
+                                    fontFamily: 'monospace'
+                                }
+                            }
+                        ],
+                        // Disable init animation.
+                        animationDuration: 0,
+                        animationDurationUpdate: updateFrequency,
+                        animationEasing: 'linear',
+                        animationEasingUpdate: 'linear',
+                        graphic: {
+                            elements: [
+                                {
+                                    type: 'text',
+                                    right: 160,
+                                    bottom: 60,
+                                    style: {
+                                        text: startYear,
+                                        font: 'bolder 80px monospace',
+                                        fill: 'rgba(100, 100, 100, 0.25)'
+                                    },
+                                    z: 100
+                                }
+                            ]
+                        }
+                    };
+                    // console.log(option);
+                    myChart.setOption(option);
+                    for (let i = startIndex; i < years.length - 1; ++i) {
+                        (function (i) {
+                            setTimeout(function () {
+                                updateYear(years[i + 1]);
+                            }, (i - startIndex) * updateFrequency);
+                        })(i);
+                    }
+                    function updateYear(year) {
+                        let source = data.slice(1).filter(function (d) {
+                            return d[4] === year;
+                        });
+                        option.series[0].data = source;
+                        option.graphic.elements[0].style.text = year;
+                        myChart.setOption(option);
+                    }
+                });
+
+                if (option && typeof option === 'object') {
+                    myChart.setOption(option);
+                }
+
+                window.addEventListener('resize', myChart.resize);
+            },
+            echart07() {
+                var dom = document.getElementById('key-time-gdp-normal');
+                var myChart = echarts.init(dom, null, {
+                    renderer: 'canvas',
+                    useDirtyRect: false
+                });
+                var app = {};
+
+                $.get('./data.json', function (data) {
+                    var option;
+                    var counties = [], timeline = [], series = [];
+                    counties = data.counties;
+                    timeline = data.timeline;
+                    series = data.series;
+                    var years = [];
+                    var map = new Map();
+                    for (let i = 0; i < counties.length; i++) {
+                        map.set(counties[i], [])
+                    }
+                    for (let i = 0; i < series.length; i += 10) {
+                        tmp_list = series[i];
+                        years.push(tmp_list[0][4])
+                        // console.log(years)
+                        // console.log(tmp_list)
+                        for (let j = 0; j < tmp_list.length; j++) {
+                            element = tmp_list[j];
+                            value = map.get(element[3]);
+                            value.push(element[0])
+                            map.set(element[3], value)
+                        }
+                    }
+                    var data = []
+                    counties.forEach((element) => {
+                        data.push(map.get(element))
+                    })
+                    // There should not be negative values in rawData
+                    const rawData = data;
+                    console.log(rawData)
+                    const totalData = [];
+                    for (let i = 0; i < rawData[0].length; ++i) {
+                        let sum = 0;
+                        for (let j = 0; j < rawData.length; ++j) {
+                            sum += rawData[j][i];
+                        }
+                        totalData.push(sum);
+                    }
+                    const grid = {
+                        left: 100,
+                        right: 100,
+                        top: 50,
+                        bottom: 50
+                    };
+                    const gridWidth = myChart.getWidth() - grid.left - grid.right;
+                    const gridHeight = myChart.getHeight() - grid.top - grid.bottom;
+                    const categoryWidth = gridWidth / rawData[0].length;
+                    const barWidth = categoryWidth * 0.6;
+                    const barPadding = (categoryWidth - barWidth) / 2;
+                    const seriesList = counties.map((name, sid) => {
+                        return {
+                            name,
+                            type: 'bar',
+                            stack: 'total',
+                            barWidth: '60%',
+                            label: {
+                                show: true,
+                                formatter: (params) => Math.round(params.value * 1000) / 100 + '%'
+                            },
+                            data: rawData[sid].map((d, did) =>
+                                totalData[did] <= 0 ? 0 : d / totalData[did]
+                            )
+                        };
+                    });
+                    console.log(counties, seriesList)
+                    const color = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#f6c574', '#e74c3c', '#4b9ac8', '#f9a65a', '#f6c574', '#e74c3c', '#4b9ac8', '#f9a65a', '#f6c574', '#e74c3c', '#4b9ac8', '#f9a65a', '#f6c574'];
+                    const elements = [];
+                    for (let j = 1, jlen = rawData[0].length; j < jlen; ++j) {
+                        const leftX = grid.left + categoryWidth * j - barPadding;
+                        const rightX = leftX + barPadding * 2;
+                        let leftY = grid.top + gridHeight;
+                        let rightY = leftY;
+                        for (let i = 0, len = seriesList.length; i < len; ++i) {
+                            const points = [];
+                            const leftBarHeight = (rawData[i][j - 1] / totalData[j - 1]) * gridHeight;
+                            points.push([leftX, leftY]);
+                            points.push([leftX, leftY - leftBarHeight]);
+                            const rightBarHeight = (rawData[i][j] / totalData[j]) * gridHeight;
+                            points.push([rightX, rightY - rightBarHeight]);
+                            points.push([rightX, rightY]);
+                            points.push([leftX, leftY]);
+                            leftY -= leftBarHeight;
+                            rightY -= rightBarHeight;
+                            elements.push({
+                                type: 'polygon',
+                                shape: {
+                                    points
+                                },
+                                style: {
+                                    fill: color[i],
+                                    opacity: 0.25
+                                }
+                            });
+                        }
+                    }
+                    option = {
+                        legend: {
+                            selectedMode: true
+                        },
+                        grid,
+                        yAxis: {
+                            type: 'value'
+                        },
+                        xAxis: {
+                            type: 'category',
+                            data: years
+                        },
+                        series: seriesList,
+                        graphic: {
+                            elements
+                        }
+                    };
+
+                    if (option && typeof option === 'object') {
+                        myChart.setOption(option);
+                    }
+
+                    window.addEventListener('resize', myChart.resize);
+                });
+
+            },
+        },
+    })
+</script>
+<script src="https://cdn.jsdelivr.net/gh/Langwenchong/cdn/js/Smooth.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/Langwenchong/cdn/js/circleMagic.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/normalize-whitespace/prism-normalize-whitespace.min.js"
+    integrity="sha256-ronWqXsvaeyrdiX7YJfdYj0S5NbeMA5ilQQTrK25Jno=" crossorigin="anonymous"></script>
+<script>
+    //鼠标点击效果
+    var Sketch = function () { "use strict"; function e(e) { return "[object Array]" == Object.prototype.toString.call(e) } function t(e) { return "function" == typeof e } function n(e) { return "number" == typeof e } function o(e) { return "string" == typeof e } function r(e) { return E[e] || String.fromCharCode(e) } function i(e, t, n) { for (var o in t) (n || !e.hasOwnProperty(o)) && (e[o] = t[o]); return e } function u(e, t) { return function () { e.apply(t, arguments) } } function a(e) { var n = {}; for (var o in e) n[o] = t(e[o]) ? u(e[o], e) : e[o]; return n } function c(e) { function n(n) { t(n) && n.apply(e, [].splice.call(arguments, 1)) } function u(e) { for (_ = 0; _ < J.length; _++)G = J[_], o(G) ? O[(e ? "add" : "remove") + "EventListener"].call(O, G, k, !1) : t(G) ? k = G : O = G } function c() { L(T), T = I(c), U || (n(e.setup), U = t(e.setup), n(e.resize)), e.running && !j && (e.dt = (B = +new Date) - e.now, e.millis += e.dt, e.now = B, n(e.update), e.autoclear && K && e.clear(), n(e.draw)), j = ++j % e.interval } function l() { O = Y ? e.style : e.canvas, D = Y ? "px" : "", e.fullscreen && (e.height = w.innerHeight, e.width = w.innerWidth), O.height = e.height + D, O.width = e.width + D, e.retina && K && X && (O.height = e.height * X, O.width = e.width * X, O.style.height = e.height + "px", O.style.width = e.width + "px", e.scale(X, X)), U && n(e.resize) } function s(e, t) { return N = t.getBoundingClientRect(), e.x = e.pageX - N.left - w.scrollX, e.y = e.pageY - N.top - w.scrollY, e } function f(t, n) { return s(t, e.element), n = n || {}, n.ox = n.x || t.x, n.oy = n.y || t.y, n.x = t.x, n.y = t.y, n.dx = n.x - n.ox, n.dy = n.y - n.oy, n } function g(e) { if (e.preventDefault(), W = a(e), W.originalEvent = e, W.touches) for (M.length = W.touches.length, _ = 0; _ < W.touches.length; _++)M[_] = f(W.touches[_], M[_]); else M.length = 0, M[0] = f(W, V); return i(V, M[0], !0), W } function h(t) { for (t = g(t), q = (Q = J.indexOf(z = t.type)) - 1, e.dragging = /down|start/.test(z) ? !0 : /up|end/.test(z) ? !1 : e.dragging; q;)o(J[q]) ? n(e[J[q--]], t) : o(J[Q]) ? n(e[J[Q++]], t) : q = 0 } function p(t) { F = t.keyCode, H = "keyup" == t.type, Z[F] = Z[r(F)] = !H, n(e[t.type], t) } function v(t) { e.autopause && ("blur" == t.type ? b : C)(), n(e[t.type], t) } function C() { e.now = +new Date, e.running = !0 } function b() { e.running = !1 } function P() { (e.running ? b : C)() } function A() { K && e.clearRect(0, 0, e.width, e.height) } function S() { R = e.element.parentNode, _ = x.indexOf(e), R && R.removeChild(e.element), ~_ && x.splice(_, 1), u(!1), b() } var T, k, O, R, N, _, D, B, G, W, z, F, H, q, Q, j = 0, M = [], U = !1, X = w.devicePixelRatio, Y = e.type == m, K = e.type == d, V = { x: 0, y: 0, ox: 0, oy: 0, dx: 0, dy: 0 }, J = [e.element, h, "mousedown", "touchstart", h, "mousemove", "touchmove", h, "mouseup", "touchend", h, "click", y, p, "keydown", "keyup", w, v, "focus", "blur", l, "resize"], Z = {}; for (F in E) Z[E[F]] = !1; return i(e, { touches: M, mouse: V, keys: Z, dragging: !1, running: !1, millis: 0, now: 0 / 0, dt: 0 / 0, destroy: S, toggle: P, clear: A, start: C, stop: b }), x.push(e), e.autostart && C(), u(!0), l(), c(), e } for (var l, s, f = "E LN10 LN2 LOG2E LOG10E PI SQRT1_2 SQRT2 abs acos asin atan ceil cos exp floor log round sin sqrt tan atan2 pow max min".split(" "), g = "__hasSketch", h = Math, d = "canvas", p = "webgl", m = "dom", y = document, w = window, x = [], v = { fullscreen: !0, autostart: !0, autoclear: !0, autopause: !0, container: y.body, interval: 1, globals: !0, retina: !1, type: d }, E = { 8: "BACKSPACE", 9: "TAB", 13: "ENTER", 16: "SHIFT", 27: "ESCAPE", 32: "SPACE", 37: "LEFT", 38: "UP", 39: "RIGHT", 40: "DOWN" }, C = { CANVAS: d, WEB_GL: p, WEBGL: p, DOM: m, instances: x, install: function (t) { if (!t[g]) { for (var o = 0; o < f.length; o++)t[f[o]] = h[f[o]]; i(t, { TWO_PI: 2 * h.PI, HALF_PI: h.PI / 2, QUATER_PI: h.PI / 4, random: function (t, o) { return e(t) ? t[~~(h.random() * t.length)] : (n(o) || (o = t || 1, t = 0), t + h.random() * (o - t)) }, lerp: function (e, t, n) { return e + n * (t - e) }, map: function (e, t, n, o, r) { return (e - t) / (n - t) * (r - o) + o } }), t[g] = !0 } }, create: function (e) { return e = i(e || {}, v), e.globals && C.install(self), l = e.element = e.element || y.createElement(e.type === m ? "div" : "canvas"), s = e.context = e.context || function () { switch (e.type) { case d: return l.getContext("2d", e); case p: return l.getContext("webgl", e) || l.getContext("experimental-webgl", e); case m: return l.canvas = l } }(), e.container.appendChild(l), C.augment(s, e) }, augment: function (e, t) { return t = i(t || {}, v), t.element = e.canvas || e, t.element.className += " sketch", i(e, t, !0), c(e) } }, b = ["ms", "moz", "webkit", "o"], P = self, A = 0, S = "AnimationFrame", T = "request" + S, k = "cancel" + S, I = P[T], L = P[k], O = 0; O < b.length && !I; O++)I = P[b[O] + "Request" + S], L = P[b[O] + "Cancel" + T]; return P[T] = I = I || function (e) { var t = +new Date, n = h.max(0, 16 - (t - A)), o = setTimeout(function () { e(t + n) }, n); return A = t + n, o }, P[k] = L = L || function (e) { clearTimeout(e) }, C }();
+
+    if (document.getElementById("clickCanvas")) {
+        function Particle(x, y, radius) {
+            this.init(x, y, radius);
+        }
+        Particle.prototype = {
+            init: function (x, y, radius) {
+                this.alive = true;
+                this.radius = radius || 10;
+                this.wander = 0.15;
+                this.theta = random(TWO_PI);
+                this.drag = 0.92;
+                this.color = '#ffeb3b';
+
+                this.x = x || 0.0;
+                this.y = y || 0.0;
+                this.vx = 0.0;
+                this.vy = 0.0;
+            },
+            move: function () {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vx *= this.drag;
+                this.vy *= this.drag;
+                this.theta += random(-0.5, 0.5) * this.wander;
+                this.vx += sin(this.theta) * 0.1;
+                this.vy += cos(this.theta) * 0.1;
+                this.radius *= 0.96;
+                this.alive = this.radius > 0.5;
+            },
+            draw: function (ctx) {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, TWO_PI);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+            }
+        };
+        var MAX_PARTICLES = 50;
+        //圆点颜色库
+        var COLOURS = ["#5ee4ff", "#f44033", "#ffeb3b", "#F38630", "#FA6900", "#f403e8", "#F9D423"];
+        var particles = [];
+        var pool = [];
+        var clickparticle = Sketch.create({
+            container: document.getElementById('clickCanvas')
+        });
+        clickparticle.spawn = function (x, y) {
+            if (particles.length >= MAX_PARTICLES)
+                pool.push(particles.shift());
+            particle = pool.length ? pool.pop() : new Particle();
+            particle.init(x, y, random(5, 20));//圆点大小范围
+            particle.wander = random(0.5, 2.0);
+            particle.color = random(COLOURS);
+            particle.drag = random(0.9, 0.99);
+            theta = random(TWO_PI);
+            force = random(1, 5);
+            particle.vx = sin(theta) * force;
+            particle.vy = cos(theta) * force;
+            particles.push(particle);
+        };
+        clickparticle.update = function () {
+            var i, particle;
+            for (i = particles.length - 1; i >= 0; i--) {
+                particle = particles[i];
+                if (particle.alive)
+                    particle.move();
+                else
+                    pool.push(particles.splice(i, 1)[0]);
+            }
+        };
+        clickparticle.draw = function () {
+            clickparticle.globalCompositeOperation = 'lighter';
+            for (var i = particles.length - 1; i >= 0; i--) {
+                particles[i].draw(clickparticle);
+            }
+        };
+        //按下时显示效果，mousedown 或者 click
+        document.addEventListener("click", function (e) {
+            var max, j;
+            //排除一些元素
+            "TEXTAREA" !== e.target.nodeName && "INPUT" !== e.target.nodeName && "A" !== e.target.nodeName && "I" !== e.target.nodeName && "IMG" !== e.target.nodeName
+                && function () {
+                    for (max = random(15, 20), j = 0; j < max; j++)
+                        clickparticle.spawn(e.clientX, e.clientY);
+                }();
+        });
+    }
+</script>
+
+</html>
